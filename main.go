@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
+	"sort"
 
 	"github.com/dreampuf/evernote-sdk-golang/client"
 	"github.com/dreampuf/evernote-sdk-golang/notestore"
@@ -36,6 +38,24 @@ func main() {
 			log.Println(err)
 		}
 	}
+	index := generateIndex(posts)
+	writeContent(dir, "index", index)
+}
+
+func generateIndex(m map[string]Post) string {
+	var posts []Post
+	for _, p := range m {
+		posts = append(posts, p)
+	}
+	sort.Slice(posts, func(i, j int) bool {
+		return posts[i].Update < posts[i].Update
+	})
+	var content string
+	for _, p := range posts {
+		link := fmt.Sprintf("<li><a href=\"%s.html\">%s</a></li>", p.Title, p.Title)
+		content += link
+	}
+	return content
 }
 
 func writeContent(dir, title, content string) error {

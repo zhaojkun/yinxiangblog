@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+cp -R static/* public
 cd public
 git config --global user.email "jiangkun.zhao90@gmail.com"
 git config --global user.name "Zhao Jiangkun"
