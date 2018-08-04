@@ -10,3 +10,6 @@ jobs:
       - checkout
       - run: go get -v -t -d ./...
       - run: go run main.go
+      - run: bash .circleci/scripts/deploy-ghpages.sh
+      - persist_to_workspace:
+          root: public
