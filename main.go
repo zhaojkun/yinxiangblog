@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"time"
 
 	"github.com/dreampuf/evernote-sdk-golang/client"
 	"github.com/dreampuf/evernote-sdk-golang/notestore"
@@ -55,6 +56,7 @@ func generateIndex(m map[string]Post) string {
 		link := fmt.Sprintf("<li><a href=\"%s.html\">%s</a></li>", p.Title, p.Title)
 		content += link
 	}
+	content += fmt.Sprintf("last updated @%v", time.Now())
 	return content
 }
 
