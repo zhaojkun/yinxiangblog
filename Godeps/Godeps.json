@@ -1,0 +1,42 @@
+{
+	"ImportPath": "github.com/zhaojkun/yinxiangblog",
+	"GoVersion": "go1.10",
+	"GodepVersion": "v79",
+	"Packages": [
+		"."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/apache/thrift/lib/go/thrift",
+			"Rev": "4aaa92ece8503a6da9bc6701604f69acf2b99d07"
+		},
+		{
+			"ImportPath": "github.com/dreampuf/evernote-sdk-golang/client",
+			"Rev": "bef0c845549da1db6ed5b9f9198e4345ac4f210a"
+		},
+		{
+			"ImportPath": "github.com/dreampuf/evernote-sdk-golang/errors",
+			"Rev": "bef0c845549da1db6ed5b9f9198e4345ac4f210a"
+		},
+		{
+			"ImportPath": "github.com/dreampuf/evernote-sdk-golang/limits",
+			"Rev": "bef0c845549da1db6ed5b9f9198e4345ac4f210a"
+		},
+		{
+			"ImportPath": "github.com/dreampuf/evernote-sdk-golang/notestore",
+			"Rev": "bef0c845549da1db6ed5b9f9198e4345ac4f210a"
+		},
+		{
+			"ImportPath": "github.com/dreampuf/evernote-sdk-golang/types",
+			"Rev": "bef0c845549da1db6ed5b9f9198e4345ac4f210a"
+		},
+		{
+			"ImportPath": "github.com/dreampuf/evernote-sdk-golang/userstore",
+			"Rev": "bef0c845549da1db6ed5b9f9198e4345ac4f210a"
+		},
+		{
+			"ImportPath": "github.com/mrjones/oauth",
+			"Rev": "3f67d9c274355678b2f9844b08d643e2f9213340"
+		}
+	]
+}
