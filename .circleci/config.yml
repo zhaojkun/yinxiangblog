@@ -3,10 +3,11 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.8
-
     working_directory: /go/src/github.com/zhaojkun/yinxiangblog
-
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "f4:ec:ed:39:b2:d7:70:ae:9b:8b:7f:15:c1:58:be:e6"
       - checkout
       - run: go get -v -t -d ./...
       - run: go run main.go
