@@ -39,9 +39,9 @@ func main() {
 }
 
 func writeContent(dir, title, content string) error {
-	os.MkdirAll(dir, 0644)
+	os.MkdirAll(dir, 0755)
 	p := path.Join(dir, title+".html")
-	return ioutil.WriteFile(p, []byte(content), 0644)
+	return ioutil.WriteFile(p, []byte(content), 0755)
 }
 
 type Client struct {
