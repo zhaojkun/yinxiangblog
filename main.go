@@ -54,7 +54,11 @@ func main() {
 }
 
 func checkMeta(posts map[string]Post) bool {
-	resp, err := http.Get("https://raw.githubusercontent.com/zhaojkun/yinxiangblog/gh-pages/meta.json")
+	project := os.Getenv("CIRCLE_PROJECT_REPONAME")
+	username := os.Getenv("CIRCLE_PROJECT_USERNAME")
+	branch := os.Getenv("RELEASE_BRANCH")
+	metafile := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/meta.json", username, project, branch)
+	resp, err := http.Get(metafile)
 	if err != nil {
 		log.Println(err)
 		return false

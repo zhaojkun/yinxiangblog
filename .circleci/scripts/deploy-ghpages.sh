@@ -11,12 +11,12 @@ else
 fi
 cp -R static/* public
 cd public
-git config --global user.email "jiangkun.zhao90@gmail.com"
-git config --global user.name "Zhao Jiangkun"
+git config --global user.email ${RELEASE_EMAIL}
+git config --global user.name ${RELEASE_USERNAME}
 git init
 git remote add origin ${CIRCLE_REPOSITORY_URL}
 git add .
 git commit -m "Deploy to Github pages"
-git checkout -b gh-pages
-git push --force --quiet origin gh-pages
+git checkout -b ${RELEASE_BRANCH}
+git push --force --quiet origin ${RELEASE_BRANCH}
 echo "Finished Deployment"
