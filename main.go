@@ -24,29 +24,15 @@ func main() {
 	}
 	c := newClient(cfg)
 	posts := c.GetPostList()
-	if changed := checkMeta(cfg, posts); !changed {
+	if changed := c.CheckMeta(posts); !changed {
 		log.Println("remote posts equal with meta json")
 		return
 	}
 	log.Println("start to generate htmls")
 	writeContent("", "changed", "data", "true")
-	buf, _ := json.Marshal(posts)
-	dir := cfg.ReleaseDir
-	writeContent(dir, "meta", "json", string(buf))
-	for _, post := range posts {
-		log.Println(post)
-		content, err := c.FetchContent(post.GUID)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		err = writeContent(dir, post.Title, "html", content)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-	index := generateIndex(posts)
-	writeContent(dir, "index", "html", index)
+	c.WriteMeta(posts)
+	c.WriteIndex(posts)
+	c.WritePosts(posts)
 }
 
 type Config struct {
@@ -81,67 +67,6 @@ type Post struct {
 	Title   string `json:"title"`
 	Update  int64  `json:"update"`
 	Content string `json:"-"`
-}
-
-func checkMeta(cfg *Config, posts map[string]Post) bool {
-	project := cfg.ReleaseProject
-	username := cfg.ReleaseUserName
-	branch := cfg.ReleaseUserName
-	metafile := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/meta.json", username, project, branch)
-	resp, err := http.Get(metafile)
-	if err != nil {
-		log.Println(err)
-		return false
-	}
-	log.Println(resp.Status)
-	if resp.StatusCode == 404 {
-		return true
-	}
-	if resp.StatusCode != 200 {
-		return false
-	}
-	buf, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return true
-	}
-	var respM map[string]Post
-	err = json.Unmarshal(buf, &respM)
-	if err != nil {
-		return true
-	}
-	if len(respM) != len(posts) {
-		return true
-	}
-	for key, p := range posts {
-		remoteP := respM[key]
-		if p.Update != remoteP.Update {
-			return true
-		}
-	}
-	return false
-}
-
-func generateIndex(m map[string]Post) string {
-	var posts []Post
-	for _, p := range m {
-		posts = append(posts, p)
-	}
-	sort.Slice(posts, func(i, j int) bool {
-		return posts[i].Update < posts[i].Update
-	})
-	var content string
-	for _, p := range posts {
-		link := fmt.Sprintf("<li><a href=\"%s.html\">%s</a></li>", p.Title, p.Title)
-		content += link
-	}
-	content += fmt.Sprintf("last updated @%v", time.Now())
-	return content
-}
-
-func writeContent(dir, title, ext, content string) error {
-	os.MkdirAll(dir, 0755)
-	p := path.Join(dir, title+"."+ext)
-	return ioutil.WriteFile(p, []byte(content), 0755)
 }
 
 type Client struct {
@@ -204,4 +129,94 @@ func (c *Client) FetchContent(guid string) (string, error) {
 		return "", err
 	}
 	return r.GetContent(), nil
+}
+
+func (c *Client) CheckMeta(posts map[string]Post) bool {
+	project := c.cfg.ReleaseProject
+	username := c.cfg.ReleaseUserName
+	branch := c.cfg.ReleaseBranch
+	metafile := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/meta.json", username, project, branch)
+	log.Println(metafile)
+	resp, err := http.Get(metafile)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	log.Println(resp.Status)
+	if resp.StatusCode == 404 {
+		return true
+	}
+	if resp.StatusCode != 200 {
+		return false
+	}
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return true
+	}
+	var respM map[string]Post
+	err = json.Unmarshal(buf, &respM)
+	if err != nil {
+		return true
+	}
+	if len(respM) != len(posts) {
+		return true
+	}
+	for key, p := range posts {
+		remoteP := respM[key]
+		if p.Update != remoteP.Update {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Client) WritePosts(posts map[string]Post) error {
+	for _, post := range posts {
+		log.Println(post)
+		content, err := c.FetchContent(post.GUID)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		err = writeContent(c.cfg.ReleaseDir, post.Title, "html", content)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+	return nil
+}
+
+func (c *Client) WriteMeta(posts map[string]Post) error {
+	buf, _ := json.Marshal(posts)
+	writeContent(c.cfg.ReleaseDir, "meta", "json", string(buf))
+	return nil
+}
+
+func (c *Client) WriteIndex(posts map[string]Post) error {
+	index := generateIndex(posts)
+	writeContent(c.cfg.ReleaseDir, "index", "html", index)
+	return nil
+}
+
+func generateIndex(m map[string]Post) string {
+	var posts []Post
+	for _, p := range m {
+		posts = append(posts, p)
+	}
+	sort.Slice(posts, func(i, j int) bool {
+		return posts[i].Update < posts[i].Update
+	})
+	var content string
+	for _, p := range posts {
+		link := fmt.Sprintf("<li><a href=\"%s.html\">%s</a></li>", p.Title, p.Title)
+		content += link
+	}
+	content += fmt.Sprintf("last updated @%v", time.Now())
+	return content
+}
+
+func writeContent(dir, title, ext, content string) error {
+	os.MkdirAll(dir, 0755)
+	p := path.Join(dir, title+"."+ext)
+	return ioutil.WriteFile(p, []byte(content), 0755)
 }
