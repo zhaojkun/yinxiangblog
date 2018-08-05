@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,26 +17,21 @@ import (
 	"github.com/dreampuf/evernote-sdk-golang/types"
 )
 
-type Post struct {
-	GUID    string `json:"guid"`
-	Title   string `json:"title"`
-	Update  int64  `json:"update"`
-	Content string `json:"-"`
-}
-
 func main() {
-	dir := "public"
-	token := os.Getenv("TOKEN")
-	guid := os.Getenv("GUID")
-	c := newClient(token)
-	posts := c.GetPostList(guid)
-	if changed := checkMeta(posts); !changed {
+	cfg, err := ReadConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := newClient(cfg)
+	posts := c.GetPostList()
+	if changed := checkMeta(cfg, posts); !changed {
 		log.Println("remote posts equal with meta json")
 		return
 	}
 	log.Println("start to generate htmls")
 	writeContent("", "changed", "data", "true")
 	buf, _ := json.Marshal(posts)
+	dir := cfg.ReleaseDir
 	writeContent(dir, "meta", "json", string(buf))
 	for _, post := range posts {
 		log.Println(post)
@@ -53,10 +49,44 @@ func main() {
 	writeContent(dir, "index", "html", index)
 }
 
-func checkMeta(posts map[string]Post) bool {
-	project := os.Getenv("CIRCLE_PROJECT_REPONAME")
-	username := os.Getenv("CIRCLE_PROJECT_USERNAME")
-	branch := os.Getenv("RELEASE_BRANCH")
+type Config struct {
+	EvernoteToken   string `json:"evernote_token"`
+	EvernoteGUID    string `json:"evernote_guid"`
+	ReleaseDir      string `json:"release_dir"`
+	ReleaseProject  string `json:"release_project"`
+	ReleaseUserName string `json:"release_username"`
+	ReleaseBranch   string `json:"release_branch"`
+}
+
+func ReadConfig() (*Config, error) {
+	if ci := os.Getenv("CIRCLECI"); ci != "" {
+		return readFromCircleCIEnv(), nil
+	}
+	return nil, errors.New("config not found")
+}
+
+func readFromCircleCIEnv() *Config {
+	var cfg Config
+	cfg.EvernoteToken = os.Getenv("TOKEN")
+	cfg.EvernoteGUID = os.Getenv("GUID")
+	cfg.ReleaseProject = os.Getenv("CIRCLE_PROJECT_REPONAME")
+	cfg.ReleaseUserName = os.Getenv("CIRCLE_PROJECT_USERNAME")
+	cfg.ReleaseBranch = os.Getenv("RELEASE_BRANCH")
+	cfg.ReleaseDir = "public"
+	return &cfg
+}
+
+type Post struct {
+	GUID    string `json:"guid"`
+	Title   string `json:"title"`
+	Update  int64  `json:"update"`
+	Content string `json:"-"`
+}
+
+func checkMeta(cfg *Config, posts map[string]Post) bool {
+	project := cfg.ReleaseProject
+	username := cfg.ReleaseUserName
+	branch := cfg.ReleaseUserName
 	metafile := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/meta.json", username, project, branch)
 	resp, err := http.Get(metafile)
 	if err != nil {
@@ -115,25 +145,29 @@ func writeContent(dir, title, ext, content string) error {
 }
 
 type Client struct {
+	cfg    *Config
 	token  string
+	guid   string
 	client *client.EvernoteClient
 }
 
-func newClient(token string) *Client {
+func newClient(cfg *Config) *Client {
 	c := client.NewClient("", "", client.YINXIANG)
 	cc := &Client{
-		token:  token,
+		cfg:    cfg,
+		token:  cfg.EvernoteToken,
+		guid:   cfg.EvernoteGUID,
 		client: c,
 	}
 	return cc
 }
 
-func (c *Client) GetPostList(guid string) map[string]Post {
+func (c *Client) GetPostList() map[string]Post {
 	store, err := c.client.GetNoteStore(c.token)
 	if err != nil {
 		log.Fatal(err)
 	}
-	bloguuid := types.GUID(guid)
+	bloguuid := types.GUID(c.guid)
 	filter := notestore.NoteFilter{
 		NotebookGuid: &bloguuid,
 	}
