@@ -29,6 +29,12 @@ func main() {
 	guid := os.Getenv("GUID")
 	c := newClient(token)
 	posts := c.GetPostList(guid)
+	if changed := checkMeta(posts); !changed {
+		return
+	}
+	writeContent("", "changed", "data", "true")
+	buf, _ := json.Marshal(posts)
+	writeContent(dir, "meta", "json", string(buf))
 	for _, post := range posts {
 		log.Println(post)
 		content, err := c.FetchContent(post.GUID)
@@ -43,10 +49,6 @@ func main() {
 	}
 	index := generateIndex(posts)
 	writeContent(dir, "index", "html", index)
-	if changed := checkMeta(posts); changed {
-		buf, _ := json.Marshal(posts)
-		writeContent(dir, "meta", "json", string(buf))
-	}
 }
 
 func checkMeta(posts map[string]Post) bool {

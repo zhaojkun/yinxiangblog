@@ -1,5 +1,14 @@
 #!/bin/sh
 set -e
+changefile="changed.data"
+if [ -f "$changefile" ]
+then
+    echo "$file found."
+else
+    echo "$file not found"
+    echo "posts no changed"
+    exit 0
+fi
 cp -R static/* public
 cd public
 git config --global user.email "jiangkun.zhao90@gmail.com"
