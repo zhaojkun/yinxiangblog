@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"sort"
@@ -34,13 +36,51 @@ func main() {
 			log.Println(err)
 			continue
 		}
-		err = writeContent(dir, post.Title, content)
+		err = writeContent(dir, post.Title, "html", content)
 		if err != nil {
 			log.Println(err)
 		}
 	}
 	index := generateIndex(posts)
-	writeContent(dir, "index", index)
+	writeContent(dir, "index", "html", index)
+	if changed := checkMeta(posts); changed {
+		buf, _ := json.Marshal(posts)
+		writeContent(dir, "meta", "json", string(buf))
+	}
+}
+
+func checkMeta(posts map[string]Post) bool {
+	resp, err := http.Get("https://raw.githubusercontent.com/zhaojkun/yinxiangblog/gh-pages/meta.json")
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	log.Println(resp.Status)
+	if resp.StatusCode == 404 {
+		return true
+	}
+	if resp.StatusCode != 200 {
+		return false
+	}
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return true
+	}
+	var respM map[string]Post
+	err = json.Unmarshal(buf, &respM)
+	if err != nil {
+		return true
+	}
+	if len(respM) != len(posts) {
+		return true
+	}
+	for key, p := range posts {
+		remoteP := respM[key]
+		if p.Update != remoteP.Update {
+			return true
+		}
+	}
+	return false
 }
 
 func generateIndex(m map[string]Post) string {
@@ -60,9 +100,9 @@ func generateIndex(m map[string]Post) string {
 	return content
 }
 
-func writeContent(dir, title, content string) error {
+func writeContent(dir, title, ext, content string) error {
 	os.MkdirAll(dir, 0755)
-	p := path.Join(dir, title+".html")
+	p := path.Join(dir, title+"."+ext)
 	return ioutil.WriteFile(p, []byte(content), 0755)
 }
 
