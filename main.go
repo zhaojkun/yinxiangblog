@@ -30,8 +30,10 @@ func main() {
 	c := newClient(token)
 	posts := c.GetPostList(guid)
 	if changed := checkMeta(posts); !changed {
+		log.Println("remote posts equal with meta json")
 		return
 	}
+	log.Println("start to generate htmls")
 	writeContent("", "changed", "data", "true")
 	buf, _ := json.Marshal(posts)
 	writeContent(dir, "meta", "json", string(buf))
