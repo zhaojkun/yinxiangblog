@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,7 +11,12 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 	"time"
+
+	"golang.org/x/net/html"
+
+	"github.com/PuerkitoBio/goquery"
 
 	"github.com/dreampuf/evernote-sdk-golang/client"
 	"github.com/dreampuf/evernote-sdk-golang/notestore"
@@ -180,19 +186,74 @@ func (c *Client) WritePosts(posts map[string]Post) error {
 			log.Println(err)
 			continue
 		}
-		content, err = utils.Filter(post.Title, content)
+		content, err = utils.Render(post.Title, content)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		err = writeContent(c.cfg.ReleaseDir, post.Title, "html", content)
+		conentWithImages, err := c.FilterImages(post.GUID, content)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		err = writeContent(c.cfg.ReleaseDir, post.Title, "html", conentWithImages)
 		if err != nil {
 			log.Println(err)
 		}
 	}
 	return nil
 }
+func (c *Client) FilterImages(guid, content string) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
+	if err != nil {
+		return "", err
+	}
+	//var images []string
+	doc.Find("en-media").Each(func(i int, s *goquery.Selection) {
+		hash, found := s.Attr("hash")
+		if !found {
+			return
+		}
+		typ, found := s.Attr("type")
+		if !found {
+			return
+		}
+		if strings.Contains(typ, "image") {
+			binary, err := c.FetchBinary(guid, hash)
+			log.Println("fetch binary image", len(binary), err)
+			if err != nil {
+				return
+			}
+			encoded := base64.StdEncoding.EncodeToString(binary)
+			tpl := `<img src="data:%s;base64,%s"/>`
+			image := fmt.Sprintf(tpl, typ, encoded)
+			imageNode, err := html.Parse(strings.NewReader(image))
+			if err != nil {
+				return
+			}
+			s.Parent().AddNodes(imageNode)
+			//images = append(images, image)
+		}
+	})
+	return doc.Html()
+}
 
+func (c *Client) FetchBinary(guid, hash string) ([]byte, error) {
+	store, err := c.client.GetNoteStore(c.token)
+	if err != nil {
+		return nil, err
+	}
+	noteguid := types.GUID(guid)
+	res, err := store.GetResourceByHash(c.token, noteguid, []byte(hash), true, false, false)
+	if err != nil {
+		return nil, err
+	}
+	data := res.GetData()
+	if data == nil {
+		return nil, err
+	}
+	return data.Body, nil
+}
 func (c *Client) WriteMeta(posts map[string]Post) error {
 	buf, _ := json.Marshal(posts)
 	writeContent(c.cfg.ReleaseDir, "meta", "json", string(buf))
