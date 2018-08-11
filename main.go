@@ -15,9 +15,11 @@ import (
 	"github.com/dreampuf/evernote-sdk-golang/client"
 	"github.com/dreampuf/evernote-sdk-golang/notestore"
 	"github.com/dreampuf/evernote-sdk-golang/types"
+	"github.com/zhaojkun/yinxiangblog/utils"
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg, err := ReadConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -174,6 +176,11 @@ func (c *Client) WritePosts(posts map[string]Post) error {
 	for _, post := range posts {
 		log.Println(post)
 		content, err := c.FetchContent(post.GUID)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		content, err = utils.Filter(post.Title, content)
 		if err != nil {
 			log.Println(err)
 			continue
