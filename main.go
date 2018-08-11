@@ -220,7 +220,7 @@ func (c *Client) FilterImages(guid, content string) (string, error) {
 		}
 		if strings.Contains(typ, "image") {
 			binary, err := c.FetchBinary(guid, hash)
-			log.Println("fetch binary image", len(binary), err)
+			log.Println("fetch binary image", typ, hash, len(binary), err)
 			if err != nil {
 				return
 			}
