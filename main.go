@@ -15,8 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/html"
-
 	"github.com/PuerkitoBio/goquery"
 
 	"github.com/dreampuf/evernote-sdk-golang/client"
@@ -209,7 +207,7 @@ func (c *Client) FilterImages(guid, content string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	//var images []string
+	var images []string
 	doc.Find("en-media").Each(func(i int, s *goquery.Selection) {
 		hash, found := s.Attr("hash")
 		if !found {
@@ -228,15 +226,18 @@ func (c *Client) FilterImages(guid, content string) (string, error) {
 			encoded := base64.StdEncoding.EncodeToString(binary)
 			tpl := `<img src="data:%s;base64,%s"/>`
 			image := fmt.Sprintf(tpl, typ, encoded)
-			imageNode, err := html.Parse(strings.NewReader(image))
-			if err != nil {
-				return
-			}
-			s.Parent().AddNodes(imageNode)
-			//images = append(images, image)
+			images = append(images, image)
 		}
 	})
-	return doc.Html()
+	headNode := doc.Find("head")
+	head, _ := headNode.Html()
+	root := doc.Find("body")
+	content, _ = root.Html()
+	for _, image := range images {
+		content += image
+	}
+	html := "<html>" + head + content + "</html>"
+	return html, nil
 }
 
 func (c *Client) FetchBinary(guid, hashHex string) ([]byte, error) {
