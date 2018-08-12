@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -238,7 +239,11 @@ func (c *Client) FilterImages(guid, content string) (string, error) {
 	return doc.Html()
 }
 
-func (c *Client) FetchBinary(guid, hash string) ([]byte, error) {
+func (c *Client) FetchBinary(guid, hashHex string) ([]byte, error) {
+	hash, err := hex.DecodeString(hashHex)
+	if err != nil {
+		return nil, err
+	}
 	store, err := c.client.GetNoteStore(c.token)
 	if err != nil {
 		return nil, err
