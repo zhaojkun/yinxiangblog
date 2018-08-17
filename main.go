@@ -295,9 +295,9 @@ func addTpl(title, content string) string {
 	tpl, err := template.ParseFiles("template/post.html")
 	if err == nil {
 		var buf bytes.Buffer
-		tpl.Execute(&buf, map[string]string{
+		tpl.Execute(&buf, map[string]interface{}{
 			"Title":   title,
-			"Content": content,
+			"Content": template.HTML(content),
 		})
 		content = buf.String()
 	}
