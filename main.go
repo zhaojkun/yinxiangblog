@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -193,7 +195,8 @@ func (c *Client) WritePosts(posts map[string]Post) error {
 			log.Println(err)
 			continue
 		}
-		err = writeContent(c.cfg.ReleaseDir, post.Title, "html", conentWithImages)
+		contentWithTpl := addTpl(post.Title, conentWithImages)
+		err = writeContent(c.cfg.ReleaseDir, post.Title, "html", contentWithTpl)
 		if err != nil {
 			log.Println(err)
 		}
@@ -266,12 +269,38 @@ func generateIndex(m map[string]Post) string {
 	sort.Slice(posts, func(i, j int) bool {
 		return posts[i].Update < posts[i].Update
 	})
-	var content string
-	for _, p := range posts {
-		link := fmt.Sprintf("<li><a href=\"%s.html\">%s</a></li>", p.Title, p.Title)
-		content += link
+	tpl, err := template.ParseFiles("template/index.html")
+	if err != nil {
+		var content string
+		for _, p := range posts {
+			link := fmt.Sprintf("<li><a href=\"%s.html\">%s</a></li>", p.Title, p.Title)
+			content += link
+		}
+		content += fmt.Sprintf("last updated @%v", time.Now())
+		return content
 	}
-	content += fmt.Sprintf("last updated @%v", time.Now())
+	data := make([]map[string]string, 0, len(posts))
+	for _, p := range posts {
+		data = append(data, map[string]string{
+			"Link":  p.Title + ".html",
+			"Title": p.Title,
+		})
+	}
+	var buf bytes.Buffer
+	tpl.Execute(&buf, data)
+	return buf.String()
+}
+
+func addTpl(title, content string) string {
+	tpl, err := template.ParseFiles("template/post.html")
+	if err == nil {
+		var buf bytes.Buffer
+		tpl.Execute(&buf, map[string]string{
+			"Title":   title,
+			"Content": content,
+		})
+		content = buf.String()
+	}
 	return content
 }
 
