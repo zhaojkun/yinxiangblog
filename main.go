@@ -11,11 +11,9 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"sort"
-	"strings"
 	"time"
-
-	"github.com/PuerkitoBio/goquery"
 
 	"github.com/dreampuf/evernote-sdk-golang/client"
 	"github.com/dreampuf/evernote-sdk-golang/notestore"
@@ -202,42 +200,30 @@ func (c *Client) WritePosts(posts map[string]Post) error {
 	}
 	return nil
 }
+
+var imageReg = regexp.MustCompile(`<en-media hash="(\w*)" type="(image\/\w*)"></en-media>`)
+
 func (c *Client) FilterImages(guid, content string) (string, error) {
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
-	if err != nil {
-		return "", err
-	}
-	var images []string
-	doc.Find("en-media").Each(func(i int, s *goquery.Selection) {
-		hash, found := s.Attr("hash")
-		if !found {
-			return
+	var err error
+	res := imageReg.ReplaceAllStringFunc(content, func(src string) string {
+		items := imageReg.FindStringSubmatch(src)
+		fmt.Println(items)
+		if len(items) < 3 {
+			return src
 		}
-		typ, found := s.Attr("type")
-		if !found {
-			return
+		hash, typ := items[1], items[2]
+		var binary []byte
+		binary, err = c.FetchBinary(guid, hash)
+		log.Println("fetch binary image", hash, len(binary), err)
+		if err != nil {
+			return src
 		}
-		if strings.Contains(typ, "image") {
-			binary, err := c.FetchBinary(guid, hash)
-			log.Println("fetch binary image", typ, hash, len(binary), err)
-			if err != nil {
-				return
-			}
-			encoded := base64.StdEncoding.EncodeToString(binary)
-			tpl := `<img src="data:%s;base64,%s"/>`
-			image := fmt.Sprintf(tpl, typ, encoded)
-			images = append(images, image)
-		}
+		encoded := base64.StdEncoding.EncodeToString(binary)
+		tpl := `<img src="data:%s;base64,%s"/>`
+		image := fmt.Sprintf(tpl, typ, encoded)
+		return image
 	})
-	headNode := doc.Find("head")
-	head, _ := headNode.Html()
-	root := doc.Find("body")
-	content, _ = root.Html()
-	for _, image := range images {
-		content += image
-	}
-	html := "<html>" + head + content + "</html>"
-	return html, nil
+	return res, err
 }
 
 func (c *Client) FetchBinary(guid, hashHex string) ([]byte, error) {
