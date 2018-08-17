@@ -267,7 +267,7 @@ func generateIndex(m map[string]Post) string {
 		posts = append(posts, p)
 	}
 	sort.Slice(posts, func(i, j int) bool {
-		return posts[i].Update < posts[i].Update
+		return posts[i].Update > posts[i].Update
 	})
 	tpl, err := template.ParseFiles("template/index.html")
 	if err != nil {
