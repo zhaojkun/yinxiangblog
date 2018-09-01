@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>yakvs</title>
+	<link rel="stylesheet" type="text/css" href="https://resugary.github.io/hugo-theme-one/css/style.css">
+</head>
+
+<body>
+
+<header>
+	<a href="/" style="float: left;color:#ff3b30;">Index</a>
+    &nbsp;&nbsp;<a href="/archives.html" style="color:#777;">Archives</a>&nbsp;&nbsp;
+    <a href="/about.html" style="color:#777;">About</a>
+	<a href="" style="color:#777;float: right;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a>
+</header>
+<div class="content">
+    <h1>yakvs</h1>
+    <div class="detail">
+        <html><head><title>yakvs</title></head><body><div><span>这个程序主要实现了一个简单的key/value的功能, </span><span>客户端</span><span> 通过 </span><span>tcp</span><span> 连接服务器进行与数据相关的请求. </span><span>服务器端</span><span>维持客户端的连接状态,同时对数据进行了维持.</span></div><div><br/></div><h2 style="text-align: start;"><span>main.go</span></h2><div style="text-align: start;"><span>main函数解析命令行参数，并加载配置文件。如果没有配置文件，则在默认位置写入默认的配置信息。然后再次读取配置文件并做一些简单的参数校验，校验通过后将之作为参数创建 </span><span>Server</span></div><div><br/></div><h2 style="text-align: start;"><span>Server</span></h2><div style="text-align: start;"><span>Server</span><span> 以配置结构体为参数,初始化内部的各种参数及锁. </span><span>Start</span><span> 设置启动标签并启动 </span><span>handler</span><span> 协程.关键在于 </span><span>handler</span><span> 中又创建了一个协程用于定时扫描 </span><span>Server</span><span> 中的连接状态进行过期断链.</span></div><div><br/></div><div style="text-align: start;"><span>当接受一个新的连接之后,进行一些列的检查:服务器是否启动，客户端连接数等,如果没有通过，则对客户端连接写入 </span><span>CONNECTION_REFUSED</span><span> 并断开连接;如果检查通过，则使用 </span><span>net.Conn,cid,errChan</span><span> 几个参数初始化为内部的 </span><span>connection</span><span> 结构，并对该连接进行服务。</span></div><div><br/></div><h2 style="text-align: start;"><span>Connection</span></h2><div style="text-align: start;"><span>Connection</span><span> 中保持 </span><span>Server</span><span> 中的一个指针,以对其内部的数据进行操作。 </span><span>Server</span><span> 中保证数据操作函数的协程安全。</span></div><div><br/></div></body></html>
+    </div>
+</div>
+<footer>
+	<p>&copy; 2018 All rights reserved.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>connection-pool</title>
+	<link rel="stylesheet" type="text/css" href="https://resugary.github.io/hugo-theme-one/css/style.css">
+</head>
+
+<body>
+
+<header>
+	<a href="/" style="float: left;color:#ff3b30;">Index</a>
+    &nbsp;&nbsp;<a href="/archives.html" style="color:#777;">Archives</a>&nbsp;&nbsp;
+    <a href="/about.html" style="color:#777;">About</a>
+	<a href="" style="color:#777;float: right;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a>
+</header>
+<div class="content">
+    <h1>connection-pool</h1>
+    <div class="detail">
+        <html><head><title>connection-pool</title></head><body><h2 style="text-align: start;"><a href="http://github.com/fatih/pool">github.com/fatih/pool</a></h2><div style="text-align: start;"><span>这个连接池主要的功能是缓存指定数量的连接数，新建连接池的时候，需要指定三个参数：池中初始的连接数，最大连接数和连接的工厂方法。</span></div><div><br/></div><div style="text-align: start;"><span>在连接的初始化函数中根据初始连接数构建指定个数的连接，然后get函数是从连接池中拿连接，如果池中有连接，则返回缓存的连接，如果没有连接了，则直接构建新的连接；在put函数中如果池中的连接未满，则将此连接放在池中，如果已满，则直接关闭掉。关于缓存连接使用的数据结构是golang的channel</span></div><div><br/></div><h2 style="text-align: start;"><span>database/sql</span></h2><div style="text-align: start;"><span>这是golang官方实现的数据库操作函数，里边实现了database的连接池。这个连接池实现了指定连接大小的连接池，其中有两个队列，一个队列是free的连接队列，一个是请求的连接队列。请求连接是，可以指定是从缓存队列中进行请求还是创建新的连接，如果现有连接个数大于此连接指定的个数，则将此请求放到请求队列中；如果free连接队列中仍然有连接缓存，则在free队列中拿到一个连接，然后将其返回。这里使用mutex变量来维护两个队列的大小，然后使用channel的方式来实现类似条件变量的东西。</span></div><div><br/></div><div style="text-align: start;"><span>最后在query层实现了连接重试的功能，检查传输过程中出的错是否是某个指定的错误，如果是，则继续重试（这里的重试次数是一个指定的数字），如果是其他的错误，则直接放回。</span></div><div><br/></div><h2 style="text-align: start;"><a href="http://github.com/garyburd/redigo">github.com/garyburd/redigo</a></h2><div style="text-align: start;"><span>这个程序有关于redis的连接池，实现的功能相对比较完善。主要实现了最大闲置连接的控制，最大连接数（可以设置为没有限制）的控制，同时还实现了获取连接时的连接有效测试，闲置连接的超时控制等。</span></div><div><br/></div><div style="text-align: start;"><span>pool数据结构中主要有以下几个重要的参数：MaxIdle,IdleTimeout,Dial(函数),TestOnBorrow(测试函数),MaxActive(0表示木有控制),idle（闲置连接队列，每次插入都在head位置插入，所以整体来讲，在idle队列中，越靠后的表明闲置的时间越长）</span></div><div><br/></div><div style="text-align: start;"><span>通过get函数先倒序检测队列中是否有超时的连接，如果有则将其关闭并移除队列，直到没有超时的连接为止。接下来顺序从idle连接中获取redis连接，并检查是否存活，通过函数指针TestOnBorrow(这个测试函数是在新建pool的时候添加的，处于应用层，根据不同的需求进行想用的设置),如果测试通过，则将此连接返回，如果没有测试通过，则将其移除队列，并对下一个连接进行进一步的操作。如果没有在队列中获取想要的连接，进行下一步，根据当前活动连接个数和活动连接的最大数进行接下来的步骤。</span></div><div><br/></div><div style="text-align: start;"><span>如果没有超过最大限制数，或者不对活动数进行控制，则直接创建相应的连接并返回，如果有限制，并且已经被限制住，则根据是否等待wait标志，进行不同的选择，如果wait为false,则直接返回没有连接的错误，如果wait为true,则启动条件变量，并等待在条件变量上。</span></div><div><br/></div><div style="text-align: start;"><span>put函数是使用完连接之后，将连接返回到池中的操作。如果要求此链接强制关闭，或者池中连接数超过闲置连接的最大数，则直接将其关闭，并函数返回，否则将其放到队列中即可。</span></div><div><br/></div></body></html>
+    </div>
+</div>
+<footer>
+	<p>&copy; 2018 All rights reserved.</p>
+</footer>
+</body>
+</html>
